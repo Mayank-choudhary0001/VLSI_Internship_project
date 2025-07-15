@@ -1,0 +1,60 @@
+Language: VHDL
+Target Device: FPGA (e.g., Xilinx/Altera)
+Filter Type: FIR (Finite Impulse Response)
+Structure: Direct Form I
+Taps: 4 (can be expanded)
+
+
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.NUMERIC_STD.ALL;
+
+entity fir_filter is
+    Port (
+        clk     : in  std_logic;
+        rst     : in  std_logic;
+        x_in    : in  std_logic_vector(7 downto 0); -- 8-bit input
+        y_out   : out std_logic_vector(15 downto 0) -- 16-bit output
+    );
+end fir_filter;
+
+architecture Behavioral of fir_filter is
+
+    -- Number of Taps
+    constant N : integer := 4;
+
+    -- Coefficients (example values: can be generated using MATLAB)
+    type coef_array is array(0 to N-1) of integer;
+    constant h : coef_array := (1, 2, 3, 4);  -- example FIR coefficients
+
+    -- Internal signals
+    signal x_reg : array(0 to N-1) of integer := (others => 0);
+    signal acc   : integer := 0;
+
+begin
+    process(clk, rst)
+    begin
+        if rst = '1' then
+            x_reg <= (others => 0);
+            acc   <= 0;
+            y_out <= (others => '0');
+
+        elsif rising_edge(clk) then
+            -- Shift input samples
+            for i in N-1 downto 1 loop
+                x_reg(i) <= x_reg(i-1);
+            end loop;
+            x_reg(0) <= to_integer(signed(x_in));  -- New input
+
+            -- FIR Convolution
+            acc := 0;
+            for i in 0 to N-1 loop
+                acc := acc + x_reg(i) * h(i);
+            end loop;
+
+            y_out <= std_logic_vector(to_signed(acc, 16));
+        end if;
+    end process;
+
+end Behavioral;
